@@ -1,5 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
 using System.Web;
+
+using JetBrains.Annotations;
 
 namespace Stashbox.Web.WebForms
 {
@@ -7,20 +9,64 @@ namespace Stashbox.Web.WebForms
     {
         private static readonly object Lock = new object();
 
-        public static IStashboxContainer AddStashbox()
+        internal static IStashboxContainer RootContainer { get; private set; }
+
+        private static void AttachEvents(HttpApplication application)
+        {
+            application.BeginRequest += (s, e) => StashboxScope.AddContainer();
+            application.EndRequest += (s, e) => StashboxScope.RemoveContainer();
+        }
+
+        private static StashboxServiceProvider SetServiceProvider(IStashboxWebFormsConfiguration configuration)
+        {
+            var serviceProvider = new StashboxServiceProvider(HttpRuntime.WebObjectActivator, configuration);
+
+            HttpRuntime.WebObjectActivator = serviceProvider;
+
+            return serviceProvider;
+        }
+
+        [UsedImplicitly]
+        public static HttpApplication AddStashbox(
+            this HttpApplication application,
+            IStashboxWebFormsConfiguration configuration)
         {
             lock (Lock)
             {
-                HttpRuntime.WebObjectActivator = new ContainerServiceProvider(HttpRuntime.WebObjectActivator);
+                AttachEvents(application);
 
-                return GetContainer();
+                configuration.Validate();
+
+                RootContainer = SetServiceProvider(configuration).RootContainer;
             }
+
+            return application;
         }
 
-        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-        public static IStashboxContainer GetContainer()
+        [UsedImplicitly]
+        public static HttpApplication AddStashbox(
+            this HttpApplication application,
+            Action<IStashboxWebFormsConfiguration> configurationAction = null)
         {
-            return (HttpRuntime.WebObjectActivator as ContainerServiceProvider)?.Container;
+            lock (Lock)
+            {
+                AttachEvents(application);
+
+                var configuration = new StashboxWebFormsConfiguration
+                {
+                    TrackUnresolvableTypes = true,
+                    UnresolvableTypeTrackingLimit = 100000,
+                    CallNextActivator = true
+                };
+
+                configurationAction?.Invoke(configuration);
+
+                configuration.Validate();
+
+                RootContainer = SetServiceProvider(configuration).RootContainer;
+
+                return application;
+            }
         }
     }
 }

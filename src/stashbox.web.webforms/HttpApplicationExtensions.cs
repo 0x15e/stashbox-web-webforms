@@ -1,23 +1,14 @@
-﻿using System;
-using System.Web;
+﻿using System.Web;
+
+using JetBrains.Annotations;
 
 namespace Stashbox.Web.WebForms
 {
+    [UsedImplicitly]
     public static class HttpApplicationExtensions
     {
-        public static IStashboxContainer AddStashbox(this HttpApplication application)
-        {
-            if (application == null)
-            {
-                throw new ArgumentNullException(nameof(application));
-            }
-
-            return StashboxAdapter.AddStashbox();
-        }
-
-        public static IStashboxContainer GetStashboxContainer(this HttpApplication application)
-        {
-            return StashboxAdapter.GetContainer();
-        }
+        [UsedImplicitly]
+        public static IStashboxContainer GetStashboxRootContainer(this HttpApplication application) =>
+            StashboxAdapter.RootContainer;
     }
 }

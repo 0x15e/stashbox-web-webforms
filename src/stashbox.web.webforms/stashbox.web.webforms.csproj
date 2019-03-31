@@ -9,6 +9,7 @@
     <AssemblyVersion>1.0.1.0</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" Version="2019.1.1" />
     <PackageReference Include="Stashbox" Version="2.7.3" />
   </ItemGroup>
   <ItemGroup>
